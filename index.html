@@ -119,14 +119,15 @@
    <div><label>Ширина, м</label><input id="wid" type="number" inputmode="decimal" min="0" step="0.1" placeholder="напр. 3"></div>
   </div>
   <div class="opts">
-   <div class="opt" data-add="60"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#15120a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>LED-підсвітка<span class="pl">+60/м²</span></div>
-   <div class="opt" data-add="90"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#15120a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>Світлові лінії<span class="pl">+90/м²</span></div>
-   <div class="opt" data-add="150"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#15120a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>Багаторівнева<span class="pl">+150/м²</span></div>
+   <div class="opt" data-opt="led"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#15120a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>LED по периметру<span class="pl">600 грн/м.п.</span></div>
+   <div class="opt" data-opt="multi"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="#15120a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>Багаторівнева<span class="pl">+150/м²</span></div>
   </div>
+  <label style="margin-top:14px">Світлові лінії, м.п. (за бажанням)</label>
+  <input id="lines" type="number" inputmode="decimal" min="0" step="0.1" placeholder="напр. 6">
   <div class="price" id="price">
    <div class="glow"></div>
    <div class="big" id="sum">0 грн</div>
-   <div class="sm" id="meta">Площа: 0 м² · 350 грн/м²</div>
+   <div class="sm" id="meta">Площа 0 м²</div>
   </div>
   <a class="btn" href="#zayavka">Лишити заявку за цією ціною</a>
   <div class="note">Ціна орієнтовна. Точну фіксуємо на безкоштовному замірі.</div>
@@ -154,7 +155,9 @@
  const len=document.getElementById('len'),wid=document.getElementById('wid'),
        sum=document.getElementById('sum'),meta=document.getElementById('meta'),
        priceBox=document.getElementById('price');
- let rate=350, add=0, shown=0, raf=null;
+ const linesEl=document.getElementById('lines');
+ const PM=600; // грн за погонний метр (LED по периметру / світлові лінії)
+ let rate=350, ledOn=false, multiOn=false, shown=0, raf=null;
  const fmt=n=>n.toLocaleString('uk-UA');
  function animateTo(target){
    cancelAnimationFrame(raf);
@@ -167,20 +170,26 @@
    })(t0);
  }
  function calc(bump){
-   const a=(parseFloat(len.value)||0)*(parseFloat(wid.value)||0);
-   const per=rate+add, total=Math.round(a*per);
+   const L=parseFloat(len.value)||0, W=parseFloat(wid.value)||0;
+   const a=L*W, perim=2*(L+W), lines=parseFloat(linesEl.value)||0;
+   const total=Math.round(a*(rate+(multiOn?150:0)) + (ledOn?perim*PM:0) + lines*PM);
    animateTo(total);
-   meta.textContent='Площа: '+a.toFixed(1)+' м² · '+per+' грн/м²';
+   let m='Площа '+a.toFixed(1)+' м²';
+   if(ledOn) m+=' · LED по периметру '+perim.toFixed(1)+' м.п.';
+   if(lines>0) m+=' · лінії '+lines+' м.п.';
+   meta.textContent=m;
    if(bump){priceBox.classList.remove('bump');void priceBox.offsetWidth;priceBox.classList.add('bump');}
  }
- [len,wid].forEach(e=>e.addEventListener('input',()=>calc(false)));
+ [len,wid,linesEl].forEach(e=>e.addEventListener('input',()=>calc(false)));
  document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
    document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
    b.classList.add('on'); rate=+b.dataset.rate; calc(true);
  }));
  document.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
-   o.classList.toggle('on'); add=0;
-   document.querySelectorAll('.opt.on').forEach(x=>add+=+x.dataset.add); calc(true);
+   o.classList.toggle('on');
+   if(o.dataset.opt==='led') ledOn=o.classList.contains('on');
+   if(o.dataset.opt==='multi') multiOn=o.classList.contains('on');
+   calc(true);
  }));
  document.getElementById('send').addEventListener('click',()=>{
    const n=document.getElementById('nm').value.trim(), p=document.getElementById('ph').value.trim(), d=document.getElementById('done');
